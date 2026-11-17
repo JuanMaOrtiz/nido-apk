@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#1c1226">
+<title>Dispositivos Nido</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600&display=swap">
+<style>
+  /* Nido's plum, its glass cards and its gradient; one column of devices, newest version first. */
+  :root {
+    --bg: #1c1226; --bg2: #2a1a36; --card: rgba(255,255,255,.06); --line: rgba(255,255,255,.10);
+    --fg: #f6f1fb; --dim: #b9aec8; --a: #8e6cef; --b: #e06c9f; --ok: #4fe38c; --bad: #ff6b6b; --wait: #ffc266;
+    --display: "Space Grotesk", "Inter", system-ui, sans-serif; --body: "Inter", system-ui, -apple-system, Roboto, sans-serif;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { background: var(--bg); }
+  body {
+    margin: 0; min-height: 100vh; color: var(--fg); font: 16px/1.45 var(--body);
+    background: radial-gradient(1200px 700px at 10% -10%, #3a2257 0%, transparent 60%),
+                radial-gradient(900px 600px at 110% 110%, #4a1d3e 0%, transparent 55%), var(--bg);
+    padding-block: 28px 40px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  main { max-width: 760px; margin: 0 auto; display: grid; gap: 22px; }
+  header { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .mark { width: 40px; height: 40px; flex: none; }
+  h1 { font: 600 28px/1.1 var(--display); margin: 0; letter-spacing: .2px; text-wrap: balance; }
+  .sub { color: var(--dim); font-size: 14px; margin-top: 2px; }
+  .latest { margin-left: auto; display: flex; gap: 8px; align-items: center; font-size: 14px; color: var(--dim); }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-weight: 600;
+          font-size: 13px; letter-spacing: .2px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pill.ok { background: rgba(79,227,140,.16); color: var(--ok); }
+  .pill.old { background: rgba(255,194,102,.16); color: var(--wait); }
+  .pill.gray { background: var(--card); color: var(--dim); }
+  .summary { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
+  .tile { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px; }
+  .tile b { display: block; font: 600 26px/1.1 var(--display); font-variant-numeric: tabular-nums; }
+  .tile span { color: var(--dim); font-size: 13px; }
+  .list { background: var(--card); border: 1px solid var(--line); border-radius: 22px; overflow: hidden; }
+  .row { display: grid; grid-template-columns: 12px minmax(0,1fr) auto; gap: 14px; align-items: center; padding: 16px 18px; }
+  .row + .row { border-top: 1px solid var(--line); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--dim); opacity: .5; }
+  .dot.on { background: var(--ok); opacity: 1; box-shadow: 0 0 0 4px rgba(79,227,140,.14); }
+  .name { font-weight: 600; font-size: 17px; overflow-wrap: anywhere; }
+  .meta { color: var(--dim); font-size: 13px; margin-top: 2px; }
+  .right { display: grid; justify-items: end; gap: 6px; }
+  .seen { color: var(--dim); font-size: 12px; font-variant-numeric: tabular-nums; }
+  h2 { font: 600 13px/1 var(--body); letter-spacing: 1.2px; text-transform: uppercase; color: var(--dim); margin: 6px 4px -8px; }
+  .faded .row { opacity: .6; }
+  .note { color: var(--dim); font-size: 13px; text-align: center; }
+  .error { color: var(--bad); }
+  @media (max-width: 520px) {
+    .summary { grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; }
+    .tile { padding: 12px; } .tile b { font-size: 22px; }
+    .latest { margin-left: 0; width: 100%; }
+  }
+  @media (prefers-reduced-motion: no-preference) { .dot.on { transition: box-shadow .3s; } }
+  .lock { max-width: 360px; margin: 12vh auto 0; background: var(--card); border: 1px solid var(--line); border-radius: 22px;
+          padding: 26px 22px; display: grid; gap: 14px; text-align: center; }
+  .lock p { margin: 0; color: var(--dim); font-size: 14px; }
+  .lock input { font: 600 28px/1 var(--display); letter-spacing: 10px; text-align: center; width: 100%; padding: 14px 10px;
+                border-radius: 14px; border: 1px solid var(--line); background: rgba(0,0,0,.25); color: var(--fg); }
+  .lock input:focus { outline: 2px solid var(--a); outline-offset: 2px; }
+  .lock button { font: 600 16px/1 var(--body); padding: 14px; border: 0; border-radius: 14px; color: #fff; cursor: pointer;
+                 background: linear-gradient(90deg, var(--a), var(--b)); }
+  .lock button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+</style>
+</head>
+<body>
+<form class="lock" id="lock" hidden>
+  <h1>Dispositivos Nido</h1>
+  <p>Escribí el PIN para ver los dispositivos. Este equipo lo recuerda.</p>
+  <input id="pin" type="password" inputmode="numeric" autocomplete="off" maxlength="6" aria-label="PIN">
+  <button type="submit">Entrar</button>
+  <p id="pin-msg" aria-live="polite"></p>
+</form>
+<main id="main" hidden>
+  <header>
+    <svg class="mark" viewBox="0 0 40 40" aria-hidden="true">
+      <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8e6cef"/><stop offset="1" stop-color="#e06c9f"/></linearGradient></defs>
+      <path d="M17 4 L20 15 L31 18 L20 21 L17 32 L14 21 L3 18 L14 15 Z" fill="url(#g)"/>
+      <path d="M31 24 L32.6 28.4 L37 30 L32.6 31.6 L31 36 L29.4 31.6 L25 30 L29.4 28.4 Z" fill="url(#g)"/>
+    </svg>
+    <div>
+      <h1>Dispositivos Nido</h1>
+      <div class="sub" id="updated">Cargando…</div>
+    </div>
+    <div class="latest">Última publicada <span class="pill gray" id="latest">—</span></div>
+  </header>
+
+  <section class="summary" aria-label="Resumen">
+    <div class="tile"><b id="n-all">—</b><span>dispositivos</span></div>
+    <div class="tile"><b id="n-on">—</b><span>en línea ahora</span></div>
+    <div class="tile"><b id="n-latest">—</b><span>con la última</span></div>
+  </section>
+
+  <section class="list" id="list" aria-live="polite"></section>
+  <h2 id="old-title" hidden>Entradas viejas</h2>
+  <section class="list faded" id="old" hidden></section>
+  <p class="note">Aparecen los dispositivos con Nido 1.44 o más nuevo. «En línea»: visto en los últimos 15 minutos. Se actualiza cada 30 segundos.</p>
+</main>
+<script>
+  var LOCK = {salt: "S4hulR5DqC9hAbc0lagx4A==", iv: "Ky2HsHDMPIlSDpz4", data: "5ohcX5wDidoaC/A07jHmpXDkiuFApd9eMs9J2cWkbje1La9kLkvahFR/1qulVVz0vWTnfbJ72ZNQ3v27jeP62MV/37uiWjQFCFJbJocGV5ZAxk2YY4WZ", iter: 250000}, DB = null;
+  var ONLINE_MS = 15 * 60 * 1000;
+  var latest = null;
+
+  function ago(ms) {
+    var s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+    if (s < 60) return "ahora";
+    var m = Math.round(s / 60); if (m < 60) return "hace " + m + " min";
+    var h = Math.round(m / 60); if (h < 48) return "hace " + h + " h";
+    return "hace " + Math.round(h / 24) + " días";
+  }
+  function code(v) { var m = /^1\.(\d+)/.exec(v || ""); return m ? parseInt(m[1], 10) : 0; }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+  function row(d) {
+    var r = el("div", "row");
+    r.appendChild(el("span", "dot" + (Date.now() - d.seen < ONLINE_MS ? " on" : "")));
+    var mid = el("div");
+    mid.appendChild(el("div", "name", d.name || "Sin nombre"));
+    mid.appendChild(el("div", "meta", d.model || ""));
+    r.appendChild(mid);
+    var right = el("div", "right");
+    var isLatest = latest && code(d.version) >= latest;
+    right.appendChild(el("span", "pill " + (latest ? (isLatest ? "ok" : "old") : "gray"), "Nido " + (d.version || "?")));
+    right.appendChild(el("span", "seen", ago(d.seen)));
+    r.appendChild(right);
+    return r;
+  }
+
+  function render(devices) {
+    var all = Object.keys(devices || {}).map(function (k) { var d = devices[k]; d.id = k; return d; })
+      .filter(function (d) { return d && d.seen; })
+      .sort(function (a, b) { return code(b.version) - code(a.version) || b.seen - a.seen; });
+    // The same name twice: the one seen last is the device; the other is an old entry (it identified itself another way).
+    var byName = {}, current = [], old = [];
+    all.slice().sort(function (a, b) { return b.seen - a.seen; }).forEach(function (d) {
+      var key = (d.name || d.id).toLowerCase();
+      if (byName[key]) old.push(d); else { byName[key] = true; current.push(d); }
+    });
+    current.sort(function (a, b) { return code(b.version) - code(a.version) || b.seen - a.seen; });
+    var list = document.getElementById("list"); list.textContent = "";
+    current.forEach(function (d) { list.appendChild(row(d)); });
+    if (!current.length) list.appendChild(el("div", "row", "Todavía no hay dispositivos en la lista."));
+    var oldBox = document.getElementById("old"); oldBox.textContent = "";
+    old.forEach(function (d) { oldBox.appendChild(row(d)); });
+    oldBox.hidden = document.getElementById("old-title").hidden = !old.length;
+    document.getElementById("n-all").textContent = current.length;
+    document.getElementById("n-on").textContent = current.filter(function (d) { return Date.now() - d.seen < ONLINE_MS; }).length;
+    document.getElementById("n-latest").textContent = latest ? current.filter(function (d) { return code(d.version) >= latest; }).length : "—";
+    document.getElementById("updated").textContent = "Actualizado a las " + new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function load() {
+    fetch(DB + "/remote/devices.json", { cache: "no-store" }).then(function (r) { return r.json(); }).then(render)
+      .catch(function () { var u = document.getElementById("updated"); u.textContent = "No se pudo leer la lista. Reintenta en 30 segundos."; u.className = "sub error"; });
+  }
+  function loadLatest() {
+    fetch("https://api.github.com/repos/JuanMaOrtiz/nido-apk/releases/latest", { cache: "no-store" })
+      .then(function (r) { return r.json(); }).then(function (j) {
+        var m = /v?(\d+)/.exec(j.tag_name || ""); if (!m) return;
+        latest = parseInt(m[1], 10);
+        var p = document.getElementById("latest"); p.textContent = "Nido 1." + latest; p.className = "pill ok";
+        load();
+      }).catch(function () {});
+  }
+  // The database's address comes only from the PIN: it's kept encrypted with it (PBKDF2 + AES-GCM).
+  function bytes(b64) { return Uint8Array.from(atob(b64), function (c) { return c.charCodeAt(0); }); }
+  function unlock(pin) {
+    var enc = new TextEncoder();
+    return crypto.subtle.importKey("raw", enc.encode(pin), "PBKDF2", false, ["deriveKey"]).then(function (base) {
+      return crypto.subtle.deriveKey({ name: "PBKDF2", hash: "SHA-256", salt: bytes(LOCK.salt), iterations: LOCK.iter },
+        base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+    }).then(function (key) {
+      return crypto.subtle.decrypt({ name: "AES-GCM", iv: bytes(LOCK.iv) }, key, bytes(LOCK.data));
+    }).then(function (plain) { return new TextDecoder().decode(plain); });
+  }
+  function start(db) {
+    DB = db;
+    document.getElementById("lock").hidden = true;
+    document.getElementById("main").hidden = false;
+    load(); loadLatest();
+    setInterval(load, 30000); setInterval(loadLatest, 10 * 60 * 1000);
+  }
+  function ask() {
+    var form = document.getElementById("lock"), input = document.getElementById("pin"), msg = document.getElementById("pin-msg");
+    form.hidden = false; input.focus();
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      msg.textContent = "Comprobando…"; msg.className = "";
+      var pin = input.value.replace(/\D/g, "");
+      unlock(pin).then(function (db) {
+        try { localStorage.setItem("nido-pin", pin); } catch (x) {}
+        start(db);
+      }).catch(function () { msg.textContent = "PIN incorrecto. Probá de nuevo."; msg.className = "error"; input.select(); });
+    });
+  }
+  // The PIN after a # in the address (a bookmark keeps it; what follows # never leaves the device), else the one this
+  // device remembers, else asked.
+  var fromUrl = (location.hash || "").replace(/[^0-9]/g, "") || (new URLSearchParams(location.search).get("pin") || "").replace(/[^0-9]/g, "");
+  var saved = null;
+  try { saved = localStorage.getItem("nido-pin"); } catch (x) {}
+  var tryPin = fromUrl || saved;
+  if (tryPin) unlock(tryPin).then(function (db) {
+    try { localStorage.setItem("nido-pin", tryPin); } catch (x) {}
+    start(db);
+  }).catch(ask); else ask();
+</script>
+</body>
+</html>
