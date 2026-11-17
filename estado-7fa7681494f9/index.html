@@ -144,6 +144,12 @@
     return "hace " + Math.round(h / 24) + " días";
   }
   function code(v) { var m = /^1\.(\d+)/.exec(v || ""); return m ? parseInt(m[1], 10) : 0; }
+  // How old a version is, in color: one behind the amber, redder with each one more, full red from 6 behind.
+  function age(v) {
+    var t = Math.min(1, Math.max(0, (latest - code(v) - 1) / 5));
+    var a = [255, 194, 102], b = [255, 90, 90];
+    return "rgb(" + a.map(function (x, i) { return Math.round(x + (b[i] - x) * t); }).join(",") + ")";
+  }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
 
   function row(d) {
@@ -156,7 +162,9 @@
     if (d.network) mid.lastChild.textContent = (d.model || "") + " · " + d.network;
     var right = el("div", "right");
     var isLatest = latest && code(d.version) >= latest;
-    right.appendChild(el("span", "pill " + (latest ? (isLatest ? "ok" : "old") : "gray"), "Nido " + (d.version || "?")));
+    var pill = el("span", "pill " + (latest ? (isLatest ? "ok" : "old") : "gray"), "Nido " + (d.version || "?"));
+    if (latest && !isLatest) { var c = age(d.version); pill.style.color = c; pill.style.background = c.replace("rgb", "rgba").replace(")", ",.16)"); }
+    right.appendChild(pill);
     right.appendChild(el("span", "seen", ago(d.seen)));
     r.appendChild(right);
     r.appendChild(el("span", "chev", "›"));
@@ -178,7 +186,8 @@
     var newer = d.adb !== undefined;   // what 1.50 and newer say
     function fact(label, value, cls) { dl.appendChild(el("dt", null, label)); dl.appendChild(el("dd", cls || null, value)); }
     var isLatest = latest && code(d.version) >= latest;
-    fact("Versión", "Nido " + (d.version || "?") + (latest ? (isLatest ? " · la última" : " · hay 1." + latest) : ""), isLatest ? "good" : latest ? "bad" : null);
+    fact("Versión", "Nido " + (d.version || "?") + (latest ? (isLatest ? " · la última" : " · hay 1." + latest) : ""), isLatest ? "good" : null);
+    if (latest && !isLatest) dl.lastChild.style.color = age(d.version);
     fact("Último reporte", ago(d.seen) + " · " + time24(d.seen), Date.now() - d.seen < ONLINE_MS ? null : "dimv");
     if (!newer) fact("Permiso, red y perfil", "Se ven desde Nido 1.50", "dimv");
     else {
