@@ -31,7 +31,6 @@
   .mark { width: 34px; height: 34px; flex: none; }
   h1 { font: 600 24px/1.1 var(--display); margin: 0; letter-spacing: .2px; text-wrap: balance; }
   .sub { color: var(--dim); font-size: 13px; line-height: 1.3; margin-top: 3px; }
-  .latest { margin-left: auto; display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--dim); }
   .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-weight: 600;
           font-size: 12px; line-height: 1.4; letter-spacing: .2px; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .pill.ok { background: rgba(79,227,140,.16); color: var(--ok); }
@@ -42,6 +41,7 @@
           display: grid; justify-items: center; align-content: center; gap: 4px; text-align: center; }
   .tile b { display: block; font: 600 24px/1 var(--display); font-variant-numeric: tabular-nums; }
   .tile span { display: block; color: var(--dim); font-size: 12px; line-height: 1.25; }
+  .tile .pill { display: inline-flex; margin-top: 2px; font-size: 11px; padding: 2px 8px; }
   .list { background: var(--card); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
   .row { display: grid; grid-template-columns: 10px minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 12px 16px; }
   .row + .row { border-top: 1px solid var(--line); }
@@ -61,7 +61,6 @@
     h1 { font-size: 22px; }
     .summary { gap: 8px; }
     .tile { padding: 10px 6px; border-radius: 14px; } .tile b { font-size: 21px; } .tile span { font-size: 11.5px; }
-    .latest { margin-left: 0; width: 100%; }
     .row { padding: 11px 14px; gap: 10px; }
   }
   @media (prefers-reduced-motion: no-preference) { .dot.on { transition: box-shadow .3s; } }
@@ -95,19 +94,18 @@
       <h1>Dispositivos Nido</h1>
       <div class="sub" id="updated">Cargando…</div>
     </div>
-    <div class="latest">Última publicada <span class="pill gray" id="latest">—</span></div>
   </header>
 
   <section class="summary" aria-label="Resumen">
     <div class="tile"><b id="n-all">—</b><span>dispositivos</span></div>
     <div class="tile"><b id="n-on">—</b><span>en línea ahora</span></div>
-    <div class="tile"><b id="n-latest">—</b><span>con la última</span></div>
+    <div class="tile"><b id="n-latest">—</b><span>con la última</span><span class="pill gray" id="latest">—</span></div>
   </section>
 
   <section class="list" id="list" aria-live="polite"></section>
   <h2 id="old-title" hidden>Entradas viejas</h2>
   <section class="list faded" id="old" hidden></section>
-  <p class="note">Aparecen los dispositivos con Nido 1.44 o más nuevo. «En línea»: visto en los últimos 15 minutos. Se actualiza cada 30 segundos.</p>
+  <p class="note">«En línea»: visto en los últimos 15 minutos. Se actualiza cada 30 segundos.</p>
 </main>
 <script>
   var LOCK = {salt: "S4hulR5DqC9hAbc0lagx4A==", iv: "Ky2HsHDMPIlSDpz4", data: "5ohcX5wDidoaC/A07jHmpXDkiuFApd9eMs9J2cWkbje1La9kLkvahFR/1qulVVz0vWTnfbJ72ZNQ3v27jeP62MV/37uiWjQFCFJbJocGV5ZAxk2YY4WZ", iter: 250000}, DB = null;
@@ -159,7 +157,7 @@
     document.getElementById("n-all").textContent = current.length;
     document.getElementById("n-on").textContent = current.filter(function (d) { return Date.now() - d.seen < ONLINE_MS; }).length;
     document.getElementById("n-latest").textContent = latest ? current.filter(function (d) { return code(d.version) >= latest; }).length : "—";
-    document.getElementById("updated").textContent = "Actualizado a las " + new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+    document.getElementById("updated").textContent = "Actualizado a las " + new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
   }
 
   function load() {
