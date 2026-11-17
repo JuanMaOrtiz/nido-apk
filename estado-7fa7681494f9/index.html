@@ -41,7 +41,7 @@
           display: grid; justify-items: center; align-content: center; gap: 4px; text-align: center; }
   .tile b { display: block; font: 600 24px/1 var(--display); font-variant-numeric: tabular-nums; }
   .tile span { display: block; color: var(--dim); font-size: 12px; line-height: 1.25; }
-  .tile .pill { display: inline-flex; margin-top: 2px; font-size: 11px; padding: 2px 8px; }
+  .ver b { color: var(--ok); font-weight: 600; font-variant-numeric: tabular-nums; }
   .list { background: var(--card); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
   .row { display: grid; grid-template-columns: 10px minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 12px 16px; }
   .row + .row { border-top: 1px solid var(--line); }
@@ -92,14 +92,14 @@
     </svg>
     <div>
       <h1>Dispositivos Nido</h1>
-      <div class="sub" id="updated">Cargando…</div>
+      <div class="sub"><span id="updated">Cargando…</span><span class="ver" id="ver" hidden> · Última versión <b id="latest">—</b></span></div>
     </div>
   </header>
 
   <section class="summary" aria-label="Resumen">
     <div class="tile"><b id="n-all">—</b><span>dispositivos</span></div>
     <div class="tile"><b id="n-on">—</b><span>en línea ahora</span></div>
-    <div class="tile"><b id="n-latest">—</b><span>con la última</span><span class="pill gray" id="latest">—</span></div>
+    <div class="tile"><b id="n-latest">—</b><span>con la última</span></div>
   </section>
 
   <section class="list" id="list" aria-live="polite"></section>
@@ -157,19 +157,20 @@
     document.getElementById("n-all").textContent = current.length;
     document.getElementById("n-on").textContent = current.filter(function (d) { return Date.now() - d.seen < ONLINE_MS; }).length;
     document.getElementById("n-latest").textContent = latest ? current.filter(function (d) { return code(d.version) >= latest; }).length : "—";
+    document.getElementById("updated").className = "";
     document.getElementById("updated").textContent = "Actualizado a las " + new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
   }
 
   function load() {
     fetch(DB + "/remote/devices.json", { cache: "no-store" }).then(function (r) { return r.json(); }).then(render)
-      .catch(function () { var u = document.getElementById("updated"); u.textContent = "No se pudo leer la lista. Reintenta en 30 segundos."; u.className = "sub error"; });
+      .catch(function () { var u = document.getElementById("updated"); u.textContent = "No se pudo leer la lista. Reintenta en 30 segundos."; u.className = "error"; });
   }
   function loadLatest() {
     fetch("https://api.github.com/repos/JuanMaOrtiz/nido-apk/releases/latest", { cache: "no-store" })
       .then(function (r) { return r.json(); }).then(function (j) {
         var m = /v?(\d+)/.exec(j.tag_name || ""); if (!m) return;
         latest = parseInt(m[1], 10);
-        var p = document.getElementById("latest"); p.textContent = "Nido 1." + latest; p.className = "pill ok";
+        document.getElementById("latest").textContent = "1." + latest; document.getElementById("ver").hidden = false;
         load();
       }).catch(function () {});
   }
