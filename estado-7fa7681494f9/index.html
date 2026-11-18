@@ -129,6 +129,8 @@
   </section>
 
   <section class="list" id="list" aria-live="polite"></section>
+  <h2 id="blk-title" hidden>Bloqueados</h2>
+  <section class="list" id="blk" hidden></section>
   <h2 id="old-title" hidden>Entradas viejas</h2>
   <section class="list faded" id="old" hidden></section>
   <dialog id="detail" aria-labelledby="d-name">
@@ -235,6 +237,12 @@
       if (byName[key]) old.push(d); else { byName[key] = true; current.push(d); }
     });
     current.sort(function (a, b) { return code(b.version) - code(a.version) || b.seen - a.seen; });
+    // The blocked ones, on their own under the list (not counted above).
+    var blk = current.filter(function (d) { return blocked[d.id]; });
+    current = current.filter(function (d) { return !blocked[d.id]; });
+    var blkBox = document.getElementById("blk"); blkBox.textContent = "";
+    blk.forEach(function (d) { blkBox.appendChild(row(d)); });
+    blkBox.hidden = document.getElementById("blk-title").hidden = !blk.length;
     var list = document.getElementById("list"); list.textContent = "";
     current.forEach(function (d) { list.appendChild(row(d)); });
     if (!current.length) list.appendChild(el("div", "row", "Todavía no hay dispositivos en la lista."));
