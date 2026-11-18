@@ -268,7 +268,7 @@
     fact("Último reporte", time24(d.seen) + " · " + ago(d.seen), Date.now() - d.seen < ONLINE_MS ? null : "dimv");
     if (!newer) fact("Permiso, red y perfil", "Se ven desde Nido 1.50", "dimv");
     else {
-      var adb = { ok: ["Tiene permiso", "good"], lost: ["Lo perdió: no se actualiza solo", "bad"], off: ["Depuración apagada", "bad"] }[d.adb] || [d.adb, null];
+      var adb = { ok: ["Tiene permiso", "good"], lost: ["Lo perdió: no se actualiza solo", "bad"], closed: ["Sin entrada por ahora: no se actualiza solo", "bad"], off: ["Depuración apagada", "bad"] }[d.adb] || [d.adb, null];
       fact("Permiso de Nido", adb[0], adb[1]);
       fact("Red", d.network || "No se sabe", d.network ? null : "dimv");
       fact("Perfil", d.profile || "Sin perfil", d.profile ? null : "dimv");
