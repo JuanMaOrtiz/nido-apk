@@ -307,7 +307,9 @@
       var key = (d.name || d.id).toLowerCase();
       if (byName[key]) old.push(d); else { byName[key] = true; current.push(d); }
     });
-    current.sort(function (a, b) { return code(b.version) - code(a.version) || b.seen - a.seen; });
+    // On first, then asleep, then an older Nido that doesn't say, then off; within each, the newest version first.
+    var RANK = { on: 0, sleep: 1, "": 2, off: 3 };
+    current.sort(function (a, b) { return RANK[state(a)] - RANK[state(b)] || code(b.version) - code(a.version) || b.seen - a.seen; });
     // The blocked ones, on their own under the list (not counted above).
     var blk = current.filter(function (d) { return blocked[d.id]; });
     current = current.filter(function (d) { return !blocked[d.id]; });
