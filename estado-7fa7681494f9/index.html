@@ -158,6 +158,9 @@
 <script>
   var LOCK = {salt: "S4hulR5DqC9hAbc0lagx4A==", iv: "Ky2HsHDMPIlSDpz4", data: "5ohcX5wDidoaC/A07jHmpXDkiuFApd9eMs9J2cWkbje1La9kLkvahFR/1qulVVz0vWTnfbJ72ZNQ3v27jeP62MV/37uiWjQFCFJbJocGV5ZAxk2YY4WZ", iter: 250000}, DB = null;
   var ONLINE_MS = 15 * 60 * 1000;
+  // This page's own version (tools/publish-page.sh sets it): when the database says a newer one is up, the page
+  // reloads itself, once per version (a reload that still brings the old one doesn't loop).
+  var PAGE = "1794978678";
   var latest = null, blocked = {};
 
   function ago(ms) {
@@ -390,6 +393,14 @@
     watch("remote/devices", function (t) { devices = t || {}; show(); });
     watch("nido/blocked", function (t) { blocked = t || {}; show(); });
     watch("nido/latest", newest);
+    watch("nido/page", function (v) {
+      if (v === null || v === undefined || String(v) === PAGE) return;
+      var tried = null;
+      try { tried = sessionStorage.getItem("reloadedFor"); } catch (e) {}
+      if (tried === String(v)) return;
+      try { sessionStorage.setItem("reloadedFor", String(v)); } catch (e) {}
+      location.replace(location.pathname + "?v=" + encodeURIComponent(v) + location.hash);
+    });
     // What only time changes ("hace X min", the dot, off after 15 minutes): drawn again here, nothing asked.
     setInterval(show, 30000);
   }
