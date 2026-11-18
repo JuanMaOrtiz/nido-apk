@@ -50,6 +50,7 @@
   .st { display: inline-block; width: 15px; height: 15px; vertical-align: -2px; margin-right: 6px; }
   .st.on { color: var(--ok); } .st.sleep { color: var(--wait); } .st.off { color: var(--dim); }
   .st.lead { width: 18px; height: 18px; margin: 0; }
+  .row.isoff > * { opacity: .55; }
   .st.none::before { content: ""; display: block; width: 6px; height: 6px; margin: 6px; border-radius: 50%; background: var(--dim); opacity: .5; }
   .seen { display: inline-flex; align-items: center; gap: 6px; }
   .seen .dot { width: 7px; height: 7px; }
@@ -215,6 +216,7 @@
   function row(d) {
     var r = el("div", "row");
     // Left: how it is (on, asleep, off); an older Nido that doesn't say: a plain mark.
+    if (state(d) === "off") r.className += " isoff";   // off: the whole row dimmer
     var ic = icon(state(d)) || el("span", "st none");
     ic.classList.add("lead");
     r.appendChild(ic);
