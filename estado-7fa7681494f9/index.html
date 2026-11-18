@@ -67,11 +67,12 @@
   .close { margin-left: auto; flex: none; width: 32px; height: 32px; border-radius: 50%; border: 0; cursor: pointer;
            background: rgba(255,255,255,.08); color: var(--fg); font-size: 18px; line-height: 1; }
   .close:focus-visible { outline: 2px solid var(--a); }
-  .facts { margin: 0; padding: 6px 18px 16px; display: grid; grid-template-columns: auto minmax(0,1fr); gap: 0 14px; }
-  .facts dt, .facts dd { padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; line-height: 1.3; }
-  .facts dt { color: var(--dim); }
-  .facts dd { margin: 0; text-align: right; font-weight: 500; overflow-wrap: anywhere; }
-  .facts dt:nth-last-of-type(1), .facts dd:nth-last-of-type(1) { border-bottom: 0; }
+  .facts { padding: 2px 18px 12px; }
+  .fact { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 11px 0;
+          border-bottom: 1px solid var(--line); font-size: 14px; line-height: 1.3; }
+  .fact:last-child { border-bottom: 0; }
+  .fact .k { color: var(--dim); flex: none; }
+  .fact .v { text-align: right; font-weight: 500; min-width: 0; overflow-wrap: anywhere; }
   .facts .good { color: var(--ok); } .facts .bad { color: var(--bad); } .facts .dimv { color: var(--dim); font-weight: 400; }
   .facts .tiny { font: 12px/1.3 ui-monospace, Consolas, monospace; color: var(--dim); font-weight: 400; }
   .blockbtn { display: block; width: calc(100% - 36px); margin: 0 18px 18px; padding: 12px; border-radius: 12px; cursor: pointer;
@@ -136,7 +137,7 @@
   <dialog id="detail" aria-labelledby="d-name">
     <div class="dhead"><div><h3 id="d-name"></h3><div class="meta" id="d-model"></div></div>
       <button class="close" id="d-close" aria-label="Cerrar">×</button></div>
-    <dl class="facts" id="d-facts"></dl>
+    <div class="facts" id="d-facts"></div>
     <button class="blockbtn" id="d-block" type="button"></button>
   </dialog>
   <p class="note">«En línea»: visto en los últimos 15 minutos. Se actualiza cada 30 segundos.</p>
@@ -188,19 +189,22 @@
 
   // A device's detail: everything it said, in a window over the list.
   function time24(ms) {
-    var t = new Date(ms);
-    return t.toLocaleDateString("es-AR", { day: "numeric", month: "short" }) + " " + t.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
+    var t = new Date(ms), today = t.toDateString() === new Date().toDateString();   // today: just the time
+    return (today ? "" : t.toLocaleDateString("es-AR", { day: "numeric", month: "short" }) + " ") + t.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
   }
   function detail(d) {
     document.getElementById("d-name").textContent = d.name || "Sin nombre";
     document.getElementById("d-model").textContent = d.model || "";
     var dl = document.getElementById("d-facts"); dl.textContent = "";
     var newer = d.adb !== undefined;   // what 1.50 and newer say
-    function fact(label, value, cls) { dl.appendChild(el("dt", null, label)); dl.appendChild(el("dd", cls || null, value)); }
+    function fact(label, value, cls) {
+      var f = el("div", "fact"); f.appendChild(el("span", "k", label)); f.appendChild(el("span", "v" + (cls ? " " + cls : ""), value));
+      dl.appendChild(f);
+    }
     var isLatest = latest && code(d.version) >= latest;
     fact("Versión", "Nido " + (d.version || "?") + (latest ? (isLatest ? " · la última" : " · hay 1." + latest) : ""), isLatest ? "good" : null);
-    if (latest && !isLatest) dl.lastChild.style.color = age(d.version);
-    fact("Último reporte", ago(d.seen) + " · " + time24(d.seen), Date.now() - d.seen < ONLINE_MS ? null : "dimv");
+    if (latest && !isLatest) dl.lastChild.lastChild.style.color = age(d.version);
+    fact("Último reporte", time24(d.seen) + " · " + ago(d.seen), Date.now() - d.seen < ONLINE_MS ? null : "dimv");
     if (!newer) fact("Permiso, red y perfil", "Se ven desde Nido 1.50", "dimv");
     else {
       var adb = { ok: ["Tiene permiso", "good"], lost: ["Lo perdió: no se actualiza solo", "bad"], off: ["Depuración apagada", "bad"] }[d.adb] || [d.adb, null];
