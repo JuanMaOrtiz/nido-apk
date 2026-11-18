@@ -219,7 +219,7 @@
       fact("Perfil", d.profile || "Sin perfil", d.profile ? null : "dimv");
     }
     fact("Identificador", d.id, "tiny");
-    if (blocked[d.id]) fact("Bloqueo", d.blocked ? "Aplicado: no puede usar Nido" : "Pendiente: se aplica desde Nido 1.51", d.blocked ? "bad" : null);
+    if (blocked[d.id]) fact("Bloqueo", d.blocked ? "Aplicado: no puede usar Nido" : "Pendiente: se confirma cuando el aparato tenga Nido 1.52", d.blocked ? "bad" : null);
     var b = document.getElementById("d-block"), isB = !!blocked[d.id];
     b.disabled = false;
     b.className = "blockbtn" + (isB ? " undo" : "");
