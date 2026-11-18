@@ -160,7 +160,7 @@
   var ONLINE_MS = 15 * 60 * 1000;
   // This page's own version (tools/publish-page.sh sets it): when the database says a newer one is up, the page
   // reloads itself, once per version (a reload that still brings the old one doesn't loop).
-  var PAGE = "1794978732";
+  var PAGE = "1794980964";
   var latest = null, blocked = {};
 
   function ago(ms) {
@@ -269,6 +269,10 @@
     fact("Estado", stt ? STATE_NAME[stt] : "En línea", stt === "on" ? "good" : stt === "off" ? "dimv" : null);
     if (stt === "sleep") dl.lastChild.lastChild.style.color = "var(--wait)";
     fact("Último reporte", time24(d.seen) + " · " + ago(d.seen), Date.now() - d.seen < ONLINE_MS ? null : "dimv");
+    // How long the internet took to answer after the last wake (Nido measures it): -1, not within a minute.
+    if (typeof d.wakeNetMs === "number") fact("Internet al despertar",
+        d.wakeNetMs < 0 ? "No volvió en un minuto" : (d.wakeNetMs / 1000).toFixed(1).replace(".", ",") + " s",
+        d.wakeNetMs < 0 || d.wakeNetMs > 10000 ? "bad" : null);
     if (!newer) fact("Permiso, red y perfil", "Se ven desde Nido 1.50", "dimv");
     else {
       var adb = { ok: ["Tiene permiso", "good"], lost: ["Lo perdió: no se actualiza solo", "bad"], closed: ["Sin entrada por ahora: no se actualiza solo", "bad"], off: ["Depuración apagada", "bad"] }[d.adb] || [d.adb, null];
