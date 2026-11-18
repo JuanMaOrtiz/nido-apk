@@ -153,7 +153,7 @@
     <button class="blockbtn" id="d-block" type="button"></button>
   </dialog>
   <div class="legend" id="legend"></div>
-  <p class="note">«En línea»: visto en los últimos 15 minutos. Se actualiza cada 30 segundos.</p>
+  <p class="note">«En línea»: visto en los últimos 15 minutos. Los cambios aparecen al instante.</p>
 </main>
 <script>
   var LOCK = {salt: "S4hulR5DqC9hAbc0lagx4A==", iv: "Ky2HsHDMPIlSDpz4", data: "5ohcX5wDidoaC/A07jHmpXDkiuFApd9eMs9J2cWkbje1La9kLkvahFR/1qulVVz0vWTnfbJ72ZNQ3v27jeP62MV/37uiWjQFCFJbJocGV5ZAxk2YY4WZ", iter: 250000}, DB = null;
@@ -289,7 +289,7 @@
       b.disabled = true;
       fetch(DB + "/nido/blocked/" + encodeURIComponent(d.id) + ".json", isB ? { method: "DELETE" }
           : { method: "PUT", body: JSON.stringify({ at: Date.now(), name: d.name || "" }) })
-        .then(function (r) { if (!r.ok) throw 0; if (isB) delete blocked[d.id]; else blocked[d.id] = true; detail(d); load(); })
+        .then(function (r) { if (!r.ok) throw 0; if (isB) delete blocked[d.id]; else blocked[d.id] = true; detail(d); show(); })
         .catch(function () { b.disabled = false; b.textContent = "No se pudo. Probá de nuevo."; });
     };
     var box = document.getElementById("detail");
@@ -322,8 +322,7 @@
     document.getElementById("n-all").textContent = current.length;
     document.getElementById("n-on").textContent = current.filter(function (d) { return Date.now() - d.seen < ONLINE_MS; }).length;
     document.getElementById("n-latest").textContent = latest ? current.filter(function (d) { return code(d.version) >= latest; }).length : "—";
-    document.getElementById("updated").className = "";
-    document.getElementById("updated").textContent = "Actualizado a las " + new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
+    status();
   }
 
   (function () {
@@ -331,27 +330,48 @@
     document.getElementById("d-close").addEventListener("click", function () { box.close ? box.close() : box.removeAttribute("open"); });
     box.addEventListener("click", function (e) { if (e.target === box) box.close(); });   // a tap outside closes it
   })();
-  function load() {
-    fetch(DB + "/nido/blocked.json", { cache: "no-store" }).then(function (r) { return r.json(); })
-      .then(function (b) { blocked = b || {}; }).catch(function () {})
-      .then(function () { return fetch(DB + "/remote/devices.json", { cache: "no-store" }); })
-      .then(function (r) { return r.json(); }).then(render)
-      .catch(function () { var u = document.getElementById("updated"); u.textContent = "No se pudo leer la lista. Reintenta en 30 segundos."; u.className = "error"; });
+  // The database tells the page each change as it happens (its event stream, as the TVs listen): no asking every
+  // 30 seconds. Each stream keeps its part of the tree; the browser reconnects a cut one by itself, and on
+  // reconnecting the database sends it whole again.
+  var devices = null, live = {}, drawSoon = 0;
+  function watch(path, done) {
+    var tree = null, es = new EventSource(DB + "/" + path + ".json");
+    function apply(e, merge) {
+      var m = JSON.parse(e.data), keys = m.path.split("/").filter(Boolean);
+      if (!keys.length) {
+        if (merge) { tree = tree || {}; for (var k in m.data) tree[k] = m.data[k]; } else tree = m.data;
+      } else {
+        if (tree === null || typeof tree !== "object") tree = {};
+        var o = tree;
+        for (var i = 0; i < keys.length - 1; i++) { if (!o[keys[i]] || typeof o[keys[i]] !== "object") o[keys[i]] = {}; o = o[keys[i]]; }
+        var last = keys[keys.length - 1];
+        if (merge) { o[last] = o[last] && typeof o[last] === "object" ? o[last] : {}; for (var j in m.data) o[last][j] = m.data[j]; }
+        else if (m.data === null) delete o[last]; else o[last] = m.data;
+      }
+      live[path] = true; done(tree);
+    }
+    es.addEventListener("put", function (e) { apply(e, false); });
+    es.addEventListener("patch", function (e) { apply(e, true); });
+    es.onerror = function () { live[path] = false; status(); };
   }
-  // The newest version: what tools/release.sh writes in the database (GitHub's API limits each address to 60 reads an
-  // hour and then answers nothing); GitHub only if the database has none.
-  function loadLatest() {
-    fetch(DB + "/nido/latest.json", { cache: "no-store" }).then(function (r) { return r.json(); })
-      .then(function (j) {
-        if (j && j.version) return { tag_name: "v" + j.version };
-        return fetch("https://api.github.com/repos/JuanMaOrtiz/nido-apk/releases/latest", { cache: "no-store" }).then(function (r) { return r.json(); });
-      }).then(function (j) {
-        var m = /v?(\d+)/.exec((j && j.tag_name) || ""); if (!m) return;
-        latest = parseInt(m[1], 10);
-        document.getElementById("latest").textContent = "1." + latest; document.getElementById("ver").hidden = false;
-        load();
-      }).catch(function () {});
+  // A few changes at once (a TV's whole report) are drawn once.
+  function show() {
+    if (drawSoon) return;
+    drawSoon = setTimeout(function () { drawSoon = 0; if (devices !== null) render(devices); }, 150);
   }
+  function status() {
+    var u = document.getElementById("updated");
+    var ok = live["remote/devices"] !== false;
+    u.className = ok ? "" : "error";
+    u.textContent = ok ? (devices === null ? "Cargando…" : "En vivo") : "Sin conexión. Reconectando…";
+  }
+  function newest(j) {
+    if (j && j.version) { latest = parseInt(j.version, 10); document.getElementById("latest").textContent = "1." + latest; document.getElementById("ver").hidden = false; show(); return; }
+    // Only if the database has none: GitHub (it limits each address to 60 reads an hour).
+    fetch("https://api.github.com/repos/JuanMaOrtiz/nido-apk/releases/latest", { cache: "no-store" }).then(function (r) { return r.json(); })
+      .then(function (g) { var m = /v?(\d+)/.exec((g && g.tag_name) || ""); if (m) newest({ version: m[1] }); }).catch(function () {});
+  }
+
   // The database's address comes only from the PIN: it's kept encrypted with it (PBKDF2 + AES-GCM).
   function bytes(b64) { return Uint8Array.from(atob(b64), function (c) { return c.charCodeAt(0); }); }
   function unlock(pin) {
@@ -367,8 +387,11 @@
     DB = db;
     document.getElementById("lock").hidden = true;
     document.getElementById("main").hidden = false;
-    load(); loadLatest();
-    setInterval(load, 30000); setInterval(loadLatest, 10 * 60 * 1000);
+    watch("remote/devices", function (t) { devices = t || {}; show(); });
+    watch("nido/blocked", function (t) { blocked = t || {}; show(); });
+    watch("nido/latest", newest);
+    // What only time changes ("hace X min", the dot, off after 15 minutes): drawn again here, nothing asked.
+    setInterval(show, 30000);
   }
   function ask() {
     var form = document.getElementById("lock"), input = document.getElementById("pin"), msg = document.getElementById("pin-msg");
