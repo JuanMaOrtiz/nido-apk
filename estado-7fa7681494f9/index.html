@@ -144,8 +144,6 @@
   </section>
 
   <section class="list" id="list" aria-live="polite"></section>
-  <h2 id="old-title" hidden>Entradas viejas</h2>
-  <section class="list faded" id="old" hidden></section>
   <h2 id="blk-title" hidden>Bloqueados</h2>
   <section class="list" id="blk" hidden></section>
   <dialog id="detail" aria-labelledby="d-name">
@@ -302,7 +300,8 @@
     var all = Object.keys(devices || {}).map(function (k) { var d = devices[k]; d.id = k; return d; })
       .filter(function (d) { return d && d.seen; })
       .sort(function (a, b) { return code(b.version) - code(a.version) || b.seen - a.seen; });
-    // The same name twice: the one seen last is the device; the other is an old entry (it identified itself another way).
+    // The same name twice: the one seen last is the device; the other is an old entry (it identified itself another way),
+    // left out.
     var byName = {}, current = [], old = [];
     all.slice().sort(function (a, b) { return b.seen - a.seen; }).forEach(function (d) {
       var key = (d.name || d.id).toLowerCase();
@@ -318,9 +317,6 @@
     var list = document.getElementById("list"); list.textContent = "";
     current.forEach(function (d) { list.appendChild(row(d)); });
     if (!current.length) list.appendChild(el("div", "row", "Todavía no hay dispositivos en la lista."));
-    var oldBox = document.getElementById("old"); oldBox.textContent = "";
-    old.forEach(function (d) { oldBox.appendChild(row(d)); });
-    oldBox.hidden = document.getElementById("old-title").hidden = !old.length;
     document.getElementById("n-all").textContent = current.length;
     document.getElementById("n-on").textContent = current.filter(function (d) { return Date.now() - d.seen < ONLINE_MS; }).length;
     document.getElementById("n-latest").textContent = latest ? current.filter(function (d) { return code(d.version) >= latest; }).length : "—";
