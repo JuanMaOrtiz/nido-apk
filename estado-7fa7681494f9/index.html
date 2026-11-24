@@ -195,7 +195,7 @@
   var ONLINE_MS = 15 * 60 * 1000;
   // This page's own version (tools/publish-page.sh sets it): when the database says a newer one is up, the page
   // reloads itself, once per version (a reload that still brings the old one doesn't loop).
-  var PAGE = "1795560461";
+  var PAGE = "1795560725";
   var latest = null, blocked = {};
 
   function ago(ms) {
@@ -504,12 +504,19 @@
     document.getElementById("lock").hidden = true;
     document.getElementById("main").hidden = false;
     watch("remote/devices", function (t) { devices = t || {}; show(); });
-    watch("nido/blocked", function (t) { blocked = t || {}; show(); });
-    watch("nido/latest", newest);
-    watch("nido/log", function (t) { logTree = t || {}; show(); });
-    watch("nido/logSeen", function (v) { logSeen = typeof v === "number" ? v : 0; show(); });
-    watch("nido/watchAt", function (v) { watchAt = typeof v === "number" ? v : null; show(); });
-    watch("nido/page", function (v) {
+    // All of nido/ on one stream: a browser keeps at most 6 open to a server, and one stream per part (7 with the log)
+    // left none for "Ya lo vi" or blocking, which then waited forever.
+    var latestWas;
+    watch("nido", function (t) {
+      t = t || {};
+      blocked = t.blocked || {};
+      logTree = t.log || {};
+      logSeen = typeof t.logSeen === "number" ? t.logSeen : 0;
+      watchAt = typeof t.watchAt === "number" ? t.watchAt : null;
+      var lat = JSON.stringify(t.latest === undefined ? null : t.latest);
+      if (lat !== latestWas) { latestWas = lat; newest(t.latest); }
+      show();
+      var v = t.page;
       if (v === null || v === undefined || String(v) === PAGE) return;
       var tried = null;
       try { tried = sessionStorage.getItem("reloadedFor"); } catch (e) {}
