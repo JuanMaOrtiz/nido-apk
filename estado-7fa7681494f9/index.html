@@ -185,6 +185,8 @@
     <div class="dlog" id="d-log"></div>
     <button class="blockbtn" id="d-block" type="button"></button>
   </dialog>
+  <h2 id="log-title" hidden>Registro</h2>
+  <section class="list" id="log" hidden></section>
   <div class="legend" id="legend"></div>
   <p class="note">«En línea»: visto en los últimos 15 minutos. Los cambios aparecen al instante.</p>
 </main>
@@ -193,7 +195,7 @@
   var ONLINE_MS = 15 * 60 * 1000;
   // This page's own version (tools/publish-page.sh sets it): when the database says a newer one is up, the page
   // reloads itself, once per version (a reload that still brings the old one doesn't loop).
-  var PAGE = "1795560267";
+  var PAGE = "1795560461";
   var latest = null, blocked = {};
 
   function ago(ms) {
@@ -434,13 +436,13 @@
     lines.forEach(function (l) { l.fresh = l.at > logSeen; });
     var fresh = lines.filter(function (l) { return l.fresh; });
     var bad = fresh.filter(function (l) { return l.level === "problem"; }).length + live.length;
-    // Always there, newest first; what came after "Ya lo vi" stands out (red with a problem, amber without).
+    // What came after "Ya lo vi" (and what's wrong right now): on top, red with a problem, amber without.
     var news = document.getElementById("news"); news.textContent = "";
-    news.hidden = !lines.length && !live.length;
-    news.className = "news" + (bad ? "" : fresh.length ? " calm" : " quiet");
+    news.hidden = !fresh.length && !live.length;
+    news.className = "news" + (bad ? "" : " calm");
     if (!news.hidden) {
       var h = el("div", "nhead");
-      h.appendChild(el("b", null, "Registro" + (fresh.length ? " · " + (fresh.length === 1 ? "1 nueva" : fresh.length + " nuevas") : "")));
+      h.appendChild(el("b", null, fresh.length ? (fresh.length === 1 ? "1 novedad" : fresh.length + " novedades") : "Problema ahora"));
       if (fresh.length) {
         var ok = el("button", null, "Ya lo vi"); ok.type = "button";
         ok.onclick = function () {
@@ -451,14 +453,17 @@
         h.appendChild(ok);
       }
       news.appendChild(h);
-      // At least every new line; then a few more at a time.
-      var all = live.concat(lines), n = Math.max(logShown, live.length + fresh.length);
-      all.slice(0, n).forEach(function (l) { news.appendChild(logLine(l)); });
-      if (all.length > n) {
-        var more = el("button", "more", "Ver " + Math.min(30, all.length - n) + " más"); more.type = "button";
-        more.onclick = function () { logShown = n + 30; drawLog(); };
-        news.appendChild(more);
-      }
+      live.concat(fresh).forEach(function (l) { news.appendChild(logLine(l)); });
+    }
+    // The rest, under the devices, always there: a few lines, more on asking.
+    var old = lines.filter(function (l) { return !l.fresh; }), box = document.getElementById("log");
+    box.hidden = document.getElementById("log-title").hidden = !old.length;
+    box.textContent = "";
+    old.slice(0, logShown).forEach(function (l) { box.appendChild(logLine(l)); });
+    if (old.length > logShown) {
+      var more = el("button", "more", "Ver " + Math.min(30, old.length - logShown) + " más"); more.type = "button";
+      more.onclick = function () { logShown += 30; drawLog(); };
+      box.appendChild(more);
     }
     var badge = document.getElementById("badge");
     badge.hidden = !fresh.length && !live.length;
