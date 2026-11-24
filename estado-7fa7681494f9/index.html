@@ -96,6 +96,32 @@
   .row.isblocked .name { color: var(--dim); }
   .bstate { font-size: 12px; line-height: 1.3; margin-top: 3px; color: var(--wait); }
   .bstate.took { color: var(--bad); }
+  /* The log: what's new stands out (red edge, a badge by the title) until "Ya lo vi"; the rest under "Registro". */
+  .badge { display: inline-flex; align-items: center; gap: 6px; margin-left: 4px; padding: 2px 9px; border-radius: 999px;
+           font: 600 12px/1.5 var(--body); background: rgba(255,107,107,.18); color: var(--bad); cursor: pointer; border: 0; }
+  .badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--bad); }
+  .news { background: rgba(255,107,107,.08); border: 1px solid rgba(255,107,107,.5); border-radius: 18px; overflow: hidden;
+          box-shadow: 0 0 0 3px rgba(255,107,107,.08); }
+  .news.calm { background: var(--card); border-color: rgba(255,194,102,.45); box-shadow: none; }
+  .nhead { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .nhead b { font: 600 15px/1.2 var(--display); }
+  .nhead button { margin-left: auto; font: 600 13px/1 var(--body); padding: 9px 14px; border-radius: 10px; cursor: pointer;
+                  border: 1px solid var(--line); background: rgba(255,255,255,.08); color: var(--fg); }
+  .line { display: grid; grid-template-columns: 9px minmax(0,1fr); gap: 10px; padding: 10px 16px; align-items: baseline; }
+  .line + .line { border-top: 1px solid var(--line); }
+  .line i { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); opacity: .6; display: block; transform: translateY(-1px); }
+  .line.problem i { background: var(--bad); opacity: 1; }
+  .line.problem .txt { color: #ffd0d0; }
+  .line.live i { background: var(--bad); opacity: 1; box-shadow: 0 0 0 3px rgba(255,107,107,.2); }
+  .txt { font-size: 14px; line-height: 1.35; overflow-wrap: anywhere; }
+  .who { color: var(--dim); font-size: 11.5px; line-height: 1.3; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .more { display: block; width: 100%; padding: 12px; border: 0; border-top: 1px solid var(--line); background: none;
+          color: var(--a); font: 600 13px/1 var(--body); cursor: pointer; }
+  .logbtn { justify-self: center; font: 600 13px/1 var(--body); padding: 10px 16px; border-radius: 12px; cursor: pointer;
+            border: 1px solid var(--line); background: var(--card); color: var(--fg); }
+  .dlog { padding: 0 18px 14px; }
+  .dlog h4 { margin: 4px 0 6px; font: 600 11px/1 var(--body); letter-spacing: 1.1px; text-transform: uppercase; color: var(--dim); }
+  .dlog .line { padding: 7px 0; }
   @media (max-width: 520px) {
     body { padding-block: 18px 28px; }
     main { gap: 14px; }
@@ -133,9 +159,11 @@
     </svg>
     <div>
       <h1>Dispositivos Nido</h1>
-      <div class="sub"><span id="updated">Cargando…</span><span class="ver" id="ver" hidden> · Última versión <b id="latest">—</b></span></div>
+      <div class="sub"><span id="updated">Cargando…</span><span class="ver" id="ver" hidden> · Última versión <b id="latest">—</b></span><button class="badge" id="badge" type="button" hidden></button></div>
     </div>
   </header>
+
+  <section class="news" id="news" aria-live="polite" hidden></section>
 
   <section class="summary" aria-label="Resumen">
     <div class="tile"><b id="n-all">—</b><span>dispositivos</span></div>
@@ -150,8 +178,11 @@
     <div class="dhead"><div><h3 id="d-name"></h3><div class="meta" id="d-model"></div></div>
       <button class="close" id="d-close" aria-label="Cerrar">×</button></div>
     <div class="facts" id="d-facts"></div>
+    <div class="dlog" id="d-log"></div>
     <button class="blockbtn" id="d-block" type="button"></button>
   </dialog>
+  <button class="logbtn" id="logbtn" type="button" hidden></button>
+  <section class="list" id="log" hidden></section>
   <div class="legend" id="legend"></div>
   <p class="note">«En línea»: visto en los últimos 15 minutos. Los cambios aparecen al instante.</p>
 </main>
@@ -160,7 +191,7 @@
   var ONLINE_MS = 15 * 60 * 1000;
   // This page's own version (tools/publish-page.sh sets it): when the database says a newer one is up, the page
   // reloads itself, once per version (a reload that still brings the old one doesn't loop).
-  var PAGE = "1794980964";
+  var PAGE = "1795560096";
   var latest = null, blocked = {};
 
   function ago(ms) {
@@ -286,6 +317,9 @@
       }
     }
     fact("Identificador", d.id, "tiny");
+    var mine = logLines().filter(function (l) { return l.by === d.name; }).slice(0, 6), dlg = document.getElementById("d-log");
+    dlg.textContent = "";
+    if (mine.length) { dlg.appendChild(el("h4", null, "Registro")); mine.forEach(function (l) { dlg.appendChild(logLine(l, false)); }); }
     if (blocked[d.id]) fact("Bloqueo", d.blocked ? "Aplicado: no puede usar Nido" : "Pendiente: se confirma cuando el aparato tenga Nido 1.52", d.blocked ? "bad" : null);
     var b = document.getElementById("d-block"), isB = !!blocked[d.id];
     b.disabled = false;
@@ -364,7 +398,81 @@
   // A few changes at once (a TV's whole report) are drawn once.
   function show() {
     if (drawSoon) return;
-    drawSoon = setTimeout(function () { drawSoon = 0; if (devices !== null) render(devices); }, 150);
+    drawSoon = setTimeout(function () { drawSoon = 0; if (devices !== null) render(devices); drawLog(); }, 150);
+  }
+
+  // The log (nido/log): written by the TVs (Journal), the watcher and the inbox (tools/apps_watch.py, apps_inbox.py).
+  // What came after "Ya lo vi" (nido/logSeen, shared by every phone and computer that opens this page) is new: on top,
+  // in red, with a badge by the title. The rest is under "Registro". Kept to the last 200 lines.
+  var LOG_KEEP = 200, WATCH_LATE = 150 * 60 * 1000;
+  var logTree = null, logSeen = 0, watchAt = null, logOpen = false, logAll = false, trimmed = false;
+  function logLines() {
+    return Object.keys(logTree || {}).map(function (k) { var l = logTree[k] || {}; l.key = k; return l; })
+      .filter(function (l) { return l.at && l.text; }).sort(function (a, b) { return b.at - a.at; });
+  }
+  function logLine(l, withWho) {
+    var r = el("div", "line" + (l.level === "problem" ? " problem" : "") + (l.live ? " live" : ""));
+    r.appendChild(el("i"));
+    var m = el("div"); m.appendChild(el("div", "txt", l.text));
+    m.appendChild(el("div", "who", (withWho !== false && l.by ? l.by + " · " : "") + (l.at ? time24(l.at) + " · " + ago(l.at) : "ahora")));
+    r.appendChild(m);
+    return r;
+  }
+  // What's wrong right now, not a line anyone wrote: the watcher (or the inbox) not running.
+  function liveProblems() {
+    var out = [];
+    if (watchAt && Date.now() - watchAt > WATCH_LATE) out.push({ live: true, level: "problem", by: "Página",
+      text: "El vigilante de apps no corre desde " + ago(watchAt) + ". Puede que se hayan acabado los minutos "
+        + "gratis de GitHub del mes, o que GitHub lo haya pausado (lo hace con los repositorios sin cambios en 60 días)." });
+    return out;
+  }
+  function drawLog() {
+    if (logTree === null) return;
+    var lines = logLines(), fresh = lines.filter(function (l) { return l.at > logSeen; }), live = liveProblems();
+    var bad = fresh.filter(function (l) { return l.level === "problem"; }).length + live.length;
+    // New: on top until seen.
+    var news = document.getElementById("news"); news.textContent = "";
+    news.hidden = !fresh.length && !live.length;
+    news.className = "news" + (bad ? "" : " calm");
+    if (!news.hidden) {
+      var h = el("div", "nhead");
+      h.appendChild(el("b", null, fresh.length ? (fresh.length === 1 ? "1 novedad" : fresh.length + " novedades") + (bad ? " · " + bad + (bad === 1 ? " problema" : " problemas") : "") : "Problema ahora"));
+      if (fresh.length) {
+        var ok = el("button", null, "Ya lo vi"); ok.type = "button";
+        ok.onclick = function () {
+          var top = fresh[0].at;
+          logSeen = top; drawLog();
+          fetch(DB + "/nido/logSeen.json", { method: "PUT", body: String(top) }).catch(function () {});
+        };
+        h.appendChild(ok);
+      }
+      news.appendChild(h);
+      live.concat(fresh).forEach(function (l) { news.appendChild(logLine(l)); });
+    }
+    var badge = document.getElementById("badge");
+    badge.hidden = !fresh.length && !live.length;
+    badge.textContent = bad ? (bad === 1 ? "1 problema" : bad + " problemas") : fresh.length + (fresh.length === 1 ? " novedad" : " novedades");
+    badge.onclick = function () { news.scrollIntoView({ behavior: "smooth", block: "start" }); };
+    // The rest: closed until asked for.
+    var seen = lines.filter(function (l) { return l.at <= logSeen; });
+    var btn = document.getElementById("logbtn"), box = document.getElementById("log");
+    btn.hidden = !seen.length;
+    btn.textContent = logOpen ? "Ocultar el registro" : "Ver el registro (" + seen.length + ")";
+    btn.onclick = function () { logOpen = !logOpen; drawLog(); };
+    box.hidden = !logOpen || !seen.length; box.textContent = "";
+    if (!box.hidden) {
+      (logAll ? seen : seen.slice(0, 30)).forEach(function (l) { box.appendChild(logLine(l)); });
+      if (!logAll && seen.length > 30) {
+        var more = el("button", "more", "Ver " + (seen.length - 30) + " más"); more.type = "button";
+        more.onclick = function () { logAll = true; drawLog(); };
+        box.appendChild(more);
+      }
+    }
+    // Only the last 200 kept: the oldest deleted, once per visit.
+    if (!trimmed && lines.length > LOG_KEEP) {
+      trimmed = true;
+      lines.slice(LOG_KEEP).forEach(function (l) { fetch(DB + "/nido/log/" + encodeURIComponent(l.key) + ".json", { method: "DELETE" }).catch(function () {}); });
+    }
   }
   function status() {
     var u = document.getElementById("updated");
@@ -397,6 +505,9 @@
     watch("remote/devices", function (t) { devices = t || {}; show(); });
     watch("nido/blocked", function (t) { blocked = t || {}; show(); });
     watch("nido/latest", newest);
+    watch("nido/log", function (t) { logTree = t || {}; show(); });
+    watch("nido/logSeen", function (v) { logSeen = typeof v === "number" ? v : 0; show(); });
+    watch("nido/watchAt", function (v) { watchAt = typeof v === "number" ? v : null; show(); });
     watch("nido/page", function (v) {
       if (v === null || v === undefined || String(v) === PAGE) return;
       var tried = null;
