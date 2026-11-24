@@ -195,7 +195,7 @@
   var ONLINE_MS = 15 * 60 * 1000;
   // This page's own version (tools/publish-page.sh sets it): when the database says a newer one is up, the page
   // reloads itself, once per version (a reload that still brings the old one doesn't loop).
-  var PAGE = "1795560725";
+  var PAGE = "1795563077";
   var latest = null, blocked = {};
 
   function ago(ms) {
@@ -408,11 +408,15 @@
   // The log (nido/log): written by the TVs (Journal), the watcher and the inbox (tools/apps_watch.py, apps_inbox.py).
   // What came after "Ya lo vi" (nido/logSeen, shared by every phone and computer that opens this page) is new: on top,
   // in red, with a badge by the title. The rest is under "Registro". Kept to the last 200 lines.
-  var LOG_KEEP = 200, WATCH_LATE = 150 * 60 * 1000;
-  var logTree = null, logSeen = 0, watchAt = null, logShown = 8, trimmed = false;
+  // New is by arrival, not by the line's own time: a TV that was offline sends its lines later with the time they
+  // happened (and a TV's clock can be off), so they came already "seen". The database names each line as it arrives
+  // (its keys sort by the server's time): "Ya lo vi" keeps the last one seen (nido/logSeenKey).
+  // The watcher runs every hour, and GitHub sometimes runs it up to an hour late: flagged after 3 hours.
+  var LOG_KEEP = 200, WATCH_LATE = 180 * 60 * 1000;
+  var logTree = null, logSeen = 0, logSeenKey = "", watchAt = null, logShown = 8, trimmed = false;
   function logLines() {
     return Object.keys(logTree || {}).map(function (k) { var l = logTree[k] || {}; l.key = k; return l; })
-      .filter(function (l) { return l.at && l.text; }).sort(function (a, b) { return b.at - a.at; });
+      .filter(function (l) { return l.at && l.text; }).sort(function (a, b) { return a.key < b.key ? 1 : a.key > b.key ? -1 : 0; });
   }
   function logLine(l, withWho) {
     var r = el("div", "line" + (l.level === "problem" ? " problem" : "") + (l.live ? " live" : "") + (l.fresh ? " isnew" : ""));
@@ -433,7 +437,7 @@
   function drawLog() {
     if (logTree === null) return;
     var lines = logLines(), live = liveProblems();
-    lines.forEach(function (l) { l.fresh = l.at > logSeen; });
+    lines.forEach(function (l) { l.fresh = logSeenKey ? l.key > logSeenKey : l.at > logSeen; });
     var fresh = lines.filter(function (l) { return l.fresh; });
     var bad = fresh.filter(function (l) { return l.level === "problem"; }).length + live.length;
     // What came after "Ya lo vi" (and what's wrong right now): on top, red with a problem, amber without.
@@ -446,9 +450,9 @@
       if (fresh.length) {
         var ok = el("button", null, "Ya lo vi"); ok.type = "button";
         ok.onclick = function () {
-          var top = fresh[0].at;
-          logSeen = top; drawLog();
-          fetch(DB + "/nido/logSeen.json", { method: "PUT", body: String(top) }).catch(function () {});
+          var top = fresh[0].key, at = Math.max.apply(null, fresh.map(function (l) { return l.at; }));
+          logSeenKey = top; logSeen = Math.max(logSeen, at); drawLog();
+          fetch(DB + "/nido.json", { method: "PATCH", body: JSON.stringify({ logSeenKey: top, logSeen: logSeen }) }).catch(function () {});
         };
         h.appendChild(ok);
       }
@@ -512,6 +516,7 @@
       blocked = t.blocked || {};
       logTree = t.log || {};
       logSeen = typeof t.logSeen === "number" ? t.logSeen : 0;
+      logSeenKey = typeof t.logSeenKey === "string" ? t.logSeenKey : "";
       watchAt = typeof t.watchAt === "number" ? t.watchAt : null;
       var lat = JSON.stringify(t.latest === undefined ? null : t.latest);
       if (lat !== latestWas) { latestWas = lat; newest(t.latest); }
