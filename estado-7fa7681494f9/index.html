@@ -195,7 +195,7 @@
   var ONLINE_MS = 15 * 60 * 1000;
   // This page's own version (tools/publish-page.sh sets it): when the database says a newer one is up, the page
   // reloads itself, once per version (a reload that still brings the old one doesn't loop).
-  var PAGE = "1795563077";
+  var PAGE = "1795567666";
   var latest = null, blocked = {};
 
   function ago(ms) {
@@ -437,7 +437,8 @@
   function drawLog() {
     if (logTree === null) return;
     var lines = logLines(), live = liveProblems();
-    lines.forEach(function (l) { l.fresh = logSeenKey ? l.key > logSeenKey : l.at > logSeen; });
+    // Only problems come up top as new; what's normal (a TV or an app updated, a notice) goes straight to the log.
+    lines.forEach(function (l) { l.fresh = l.level === "problem" && (logSeenKey ? l.key > logSeenKey : l.at > logSeen); });
     var fresh = lines.filter(function (l) { return l.fresh; });
     var bad = fresh.filter(function (l) { return l.level === "problem"; }).length + live.length;
     // What came after "Ya lo vi" (and what's wrong right now): on top, red with a problem, amber without.
@@ -446,7 +447,7 @@
     news.className = "news" + (bad ? "" : " calm");
     if (!news.hidden) {
       var h = el("div", "nhead");
-      h.appendChild(el("b", null, fresh.length ? (fresh.length === 1 ? "1 novedad" : fresh.length + " novedades") : "Problema ahora"));
+      h.appendChild(el("b", null, bad === 1 ? "1 problema" : bad + " problemas"));
       if (fresh.length) {
         var ok = el("button", null, "Ya lo vi"); ok.type = "button";
         ok.onclick = function () {
@@ -471,7 +472,7 @@
     }
     var badge = document.getElementById("badge");
     badge.hidden = !fresh.length && !live.length;
-    badge.textContent = bad ? (bad === 1 ? "1 problema" : bad + " problemas") : fresh.length + (fresh.length === 1 ? " nueva" : " nuevas");
+    badge.textContent = bad === 1 ? "1 problema" : bad + " problemas";
     badge.onclick = function () { news.scrollIntoView({ behavior: "smooth", block: "start" }); };
     // Only the last 200 kept: the oldest deleted, once per visit.
     if (!trimmed && lines.length > LOG_KEEP) {
