@@ -195,7 +195,7 @@
   var ONLINE_MS = 15 * 60 * 1000;
   // This page's own version (tools/publish-page.sh sets it): when the database says a newer one is up, the page
   // reloads itself, once per version (a reload that still brings the old one doesn't loop).
-  var PAGE = "1795567666";
+  var PAGE = "1795576355";
   var latest = null, blocked = {};
 
   function ago(ms) {
@@ -413,7 +413,7 @@
   // (its keys sort by the server's time): "Ya lo vi" keeps the last one seen (nido/logSeenKey).
   // The watcher runs every hour, and GitHub sometimes runs it up to an hour late: flagged after 3 hours.
   var LOG_KEEP = 200, WATCH_LATE = 180 * 60 * 1000;
-  var logTree = null, logSeen = 0, logSeenKey = "", watchAt = null, logShown = 8, trimmed = false;
+  var logTree = null, logSeen = 0, logSeenKey = "", watchAt = null, logShown = 10, trimmed = false;
   function logLines() {
     return Object.keys(logTree || {}).map(function (k) { var l = logTree[k] || {}; l.key = k; return l; })
       .filter(function (l) { return l.at && l.text; }).sort(function (a, b) { return a.key < b.key ? 1 : a.key > b.key ? -1 : 0; });
